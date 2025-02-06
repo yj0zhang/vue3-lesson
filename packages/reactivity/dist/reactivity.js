@@ -4,7 +4,12 @@ function effect(fn, options) {
     _effect.run();
   });
   _effect.run();
-  return _effect;
+  if (options) {
+    Object.assign(_effect, options);
+  }
+  const runner = _effect.run.bind(_effect);
+  runner.effct = _effect;
+  return runner;
 }
 var activeEffect;
 function preCleanEffect(effect2) {

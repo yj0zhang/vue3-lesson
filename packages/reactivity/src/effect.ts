@@ -3,11 +3,16 @@ export function effect(fn,options?) {
 
     //创建一个effect，只要依赖的属性变化了就要执行回调
     const _effect = new ReactiveEffect(fn, () => {
-        // scheduler
+        // 默认scheduler
         _effect.run()
     })
     _effect.run();
-    return _effect
+    if (options) {
+        Object.assign(_effect, options);//用户传递的覆盖默认的
+    }
+    const runner =_effect.run.bind(_effect);
+    runner.effct = _effect;
+    return runner
 }
 // 全局变量
 export let activeEffect;
