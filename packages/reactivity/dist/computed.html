@@ -21,10 +21,11 @@
                 console.log(v);//
             }
         });
-        // console.log(aliasName.value);
         //多次访问此属性，只会执行一次
         effect(() =>{
             console.log('effect runner');
+            console.log(aliasName.value);
+            console.log(aliasName.value);
             console.log(aliasName.value);
         })
         setTimeout(() => {
