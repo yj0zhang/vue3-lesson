@@ -12,13 +12,14 @@
         // import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed,watch,watchEffect} from '/node_modules/vue/dist/vue.esm-browser.js';
         // console.log(watch, watchEffect)
         const state = reactive({name: 'ss',age:30,address:{n:1}})
-        watchEffect(() => {
-            console.log(state.name+state.age)
-        })
-        // const name = ref('x')
-        // watch(name, function(oldValue, newValue) {
-        //     console.log(oldValue, newValue)
-        // }, {deep: false});
+        // watchEffect(() => {
+        //     console.log(state.name+state.age)
+        // })
+        const name = ref('x')
+        const unwatch = watch(state, function(oldValue, newValue) {
+            console.log(oldValue, newValue)
+        }, {deep: false, immediate: true});
+        unwatch();
         setTimeout(() => {
             state.name='dd'
             // name.value = 'ddd'

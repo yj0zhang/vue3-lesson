@@ -58,4 +58,9 @@ function doWatch(source,cb,{deep, immediate}){
     } else {
         oldValue = effect.run()
     }
+
+    const unwatch = () => {
+        effect.stop();
+    }
+    return unwatch;
 }
