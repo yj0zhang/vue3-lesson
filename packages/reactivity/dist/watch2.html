@@ -8,8 +8,8 @@
 <body>
     <div id="app"></div>
     <script type="module">
-        import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed, watch, watchEffect} from './reactivity.js';
-        // import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed,watch,watchEffect} from '/node_modules/vue/dist/vue.esm-browser.js';
+        // import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed, watch, watchEffect} from './reactivity.js';
+        import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed,watch,watchEffect} from '/node_modules/vue/dist/vue.esm-browser.js';
         const val = ref("")
 
         function getData(timer){
@@ -22,12 +22,13 @@
         }
         let timer = 3000;
         let queue = [];
-        watch(val, async (newValue, oldValue, onCleanup)=>{
+        watch(val, async ()=>{
             let flag = true;
+            for(let i = 0; i < queue.length;i++) {
+                queue[i]()
+            }
+            queue.push(() => flag = false);
             timer -=1000;
-            onCleanup(() => {
-                flag = false;
-            })
             let r = await getData(timer);
             if (flag) {
                 app.innerHTML = r;
