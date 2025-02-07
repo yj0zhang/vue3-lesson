@@ -33,6 +33,8 @@ class ReactiveEffect {
     _trackId = 0;//用于记录当前effect执行了几次(防止一个属性在当前effect中多次依赖收集)
     deps = [];
     _depsLength = 0;
+    _running = 0;
+
     public active = true;
     // fn 用户编写的函数
     constructor(public fn, public scheduler) {}
@@ -45,8 +47,10 @@ class ReactiveEffect {
             activeEffect = this;
             // effect重新执行前，需要将上一次的依赖清空
             preCleanEffect(this);
+            this._running++;
             return this.fn();
         } finally {
+            this._running--;
             postCleanEffect(this);
             activeEffect = lastEffect;
         }
@@ -86,7 +90,10 @@ export function trackEffect(effect, dep) {
 export function triggerEffects(dep) {
     for(const effect of dep.keys()) {
         if (effect.scheduler) {
-            effect.scheduler();
+            if(!effect._running){
+                // 不是正在执行，才能执行
+                effect.scheduler();
+            }
         }
     }
 }

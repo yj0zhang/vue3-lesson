@@ -8,22 +8,20 @@
 <body>
     <div id="app"></div>
     <script type="module">
-        // import {reactive, effect} from '/node_modules/@vue/reactivity/dist/reactivity.esm-browser.js';
-        import {reactive, effect} from "./reactivity.js";
-        let obj = {name:'name',age:30, flag: true};
-        const state = reactive(obj);
-        let runner = effect(() => {
-            console.log('runner')
-            app.innerHTML=state.flag?state.name:state.age;
-        },{
-            scheduler:()=>{
-                console.log('数据更新了，不重新渲染，走自己的逻辑');
-                runner()//重新渲染
-            }
-        })
-        setTimeout(() => {
-            state.flag = false;
-        },1000)
+        // import {reactive, effect, ref, toRef} from '/node_modules/@vue/reactivity/dist/reactivity.esm-browser.js';
+        import {reactive, effect, ref, toRef, toRefs, proxyRefs} from "./reactivity.js";
+        let state = reactive({name:'s',age:30, gender: '女'});
+        console.log({...state})
+        let name = toRef(state,'name');
+        console.log(name.value)
+        let {age,gender} = toRefs(state);
+        console.log(age.value, gender.value);
+        let proxyR = proxyRefs({...toRefs(state)});
+        console.log(proxyR.name)
+        // setTimeout(() => {
+            
+        // }, 1000);
+        
     </script>
 </body>
 </html>
