@@ -7,6 +7,10 @@ export function watch(source,cb,options = {} as any) {
     return doWatch(source,cb,options)
 }
 
+export function watchEffect(source,options={}){
+    return doWatch(source, null, options as any)
+}
+
 // 控制depth 以及当前遍历到了哪一层
 function traverse(source, depth, currentDepth = 0,seen=new Set()){
     if (!isObject(source)) {
@@ -26,7 +30,7 @@ function traverse(source, depth, currentDepth = 0,seen=new Set()){
     }
     return source;//遍历就会触发每个属性的get
 }
-function doWatch(source,cb,{deep}){
+function doWatch(source,cb,{deep, immediate}){
     const reactiveGetter = (source) => traverse(source, deep === false ? 1:undefined);
     // 产生一个可以给ReactiveEffect来使用的getter，需要对这个对象进行取值操作，会关联当前的reactiveEffect
     let getter;
@@ -39,10 +43,19 @@ function doWatch(source,cb,{deep}){
     }
     let oldValue;
     const job = () => {
-        const newValue = effect.run()
-        cb(newValue, oldValue);
-        oldValue = newValue;
+        if (cb) {
+            const newValue = effect.run()
+            cb(newValue, oldValue);
+            oldValue = newValue;
+        } else {
+            //watchEffect
+            effect.run();
+        }
     }
     const effect = new ReactiveEffect(getter, job)
-    oldValue = effect.run()
+    if (immediate) {
+        job()
+    } else {
+        oldValue = effect.run()
+    }
 }

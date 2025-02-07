@@ -8,16 +8,20 @@
 <body>
     <div id="app"></div>
     <script type="module">
-        import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed, watch} from './reactivity.js';
+        import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed, watch, watchEffect} from './reactivity.js';
         // import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed,watch,watchEffect} from '/node_modules/vue/dist/vue.esm-browser.js';
         // console.log(watch, watchEffect)
         const state = reactive({name: 'ss',age:30,address:{n:1}})
-        const name = ref('x')
-        watch(name, function(oldValue, newValue) {
-            console.log(oldValue, newValue)
-        }, {deep: false});
+        watchEffect(() => {
+            console.log(state.name+state.age)
+        })
+        // const name = ref('x')
+        // watch(name, function(oldValue, newValue) {
+        //     console.log(oldValue, newValue)
+        // }, {deep: false});
         setTimeout(() => {
-            name.value = 'ddd'
+            state.name='dd'
+            // name.value = 'ddd'
             // console.log('deep')
             // state.address.n = 2
         },2000)
