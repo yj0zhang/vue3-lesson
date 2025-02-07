@@ -8,30 +8,18 @@
 <body>
     <div id="app"></div>
     <script type="module">
-        // import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed} from '/node_modules/@vue/reactivity/dist/reactivity.esm-browser.js';
-        import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed} from "./reactivity.js";
-        // computed 计算属性，返回一个不可变的ref
-        const state = reactive({name: 's'});
-        const aliasName = computed({
-            get(oldValue) {
-                console.log('runner', oldValue);
-                return "**"+state.name;
-            },
-            set(v) {
-                console.log(v);//
-            }
-        });
-        // console.log(aliasName.value);
-        //多次访问此属性，只会执行一次
-        effect(() =>{
-            console.log('effect runner');
-            console.log(aliasName.value);
-        })
+        import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed, watch} from './reactivity.js';
+        // import {reactive, effect, ref, toRef, toRefs, proxyRefs, computed,watch,watchEffect} from '/node_modules/vue/dist/vue.esm-browser.js';
+        // console.log(watch, watchEffect)
+        const state = reactive({name: 'ss',age:30,address:{n:1}})
+        watch(state, function(oldValue, newValue) {
+            console.log(oldValue, newValue)
+        }, {deep: false});
         setTimeout(() => {
-            console.log('setTimeout runner');
-            state.name = 'jj';
-            // console.log(aliasName.value)
-        }, 1000);
+            state.name = 'ddd'
+            // console.log('deep')
+            // state.address.n = 2
+        },2000)
     </script>
 </body>
 </html>
