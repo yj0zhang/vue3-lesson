@@ -184,6 +184,9 @@ function reactive(target) {
 function toReactive(value) {
   return isObject(value) ? reactive(value) : value;
 }
+function isReactive(value) {
+  return value && value["__v_isReactive" /* IS_REACTIVE */];
+}
 
 // packages/reactivity/src/ref.ts
 function ref(value) {
@@ -262,6 +265,9 @@ function proxyRefs(objectWithRef) {
     }
   });
 }
+function isRef(value) {
+  return value && value.__v_isRef;
+}
 
 // packages/reactivity/src/computed.ts
 var ComputedRefImpl = class {
@@ -320,7 +326,14 @@ function traverse(source, depth, currentDepth = 0, seen = /* @__PURE__ */ new Se
 }
 function doWatch(source, cb, { deep }) {
   const reactiveGetter = (source2) => traverse(source2, deep === false ? 1 : void 0);
-  let getter = () => reactiveGetter(source);
+  let getter;
+  if (isReactive(source)) {
+    getter = () => reactiveGetter(source);
+  } else if (isRef(source)) {
+    getter = () => source.value;
+  } else if (isFunction(source)) {
+    getter = source;
+  }
   let oldValue;
   const job = () => {
     const newValue = effect2.run();
@@ -335,6 +348,8 @@ export {
   activeEffect,
   computed,
   effect,
+  isReactive,
+  isRef,
   proxyRefs,
   reactive,
   ref,

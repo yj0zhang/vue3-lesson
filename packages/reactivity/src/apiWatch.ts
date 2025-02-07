@@ -1,5 +1,7 @@
-import { isObject } from "@vue/shared";
+import { isFunction, isObject } from "@vue/shared";
 import { ReactiveEffect } from "./effect";
+import { isReactive } from "./reactive";
+import { isRef } from "./ref";
 
 export function watch(source,cb,options = {} as any) {
     return doWatch(source,cb,options)
@@ -27,7 +29,14 @@ function traverse(source, depth, currentDepth = 0,seen=new Set()){
 function doWatch(source,cb,{deep}){
     const reactiveGetter = (source) => traverse(source, deep === false ? 1:undefined);
     // 产生一个可以给ReactiveEffect来使用的getter，需要对这个对象进行取值操作，会关联当前的reactiveEffect
-    let getter = () => reactiveGetter(source);
+    let getter;
+    if (isReactive(source)) {
+        getter = () => reactiveGetter(source);
+    } else if (isRef(source)) {
+        getter = () => source.value;
+    } else if (isFunction(source)) {
+        getter = source;
+    }
     let oldValue;
     const job = () => {
         const newValue = effect.run()
