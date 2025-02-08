@@ -94,6 +94,7 @@ function isString(value) {
 
 // packages/runtime-core/src/createVnode.ts
 var Text = Symbol("Text");
+var Fragment = Symbol("Fragment");
 function isVnode(value) {
   return value?.__v_isVnode;
 }
@@ -370,6 +371,13 @@ function createRenderer(renderOptions2) {
       }
     }
   };
+  const processFragment = (n1, n2, container) => {
+    if (n1 === null) {
+      mountChildren(n2.children, container);
+    } else {
+      patchChildren(n1, n2, container);
+    }
+  };
   const patch = (n1, n2, container, anchor = null) => {
     if (n1 === n2) {
       return;
@@ -383,11 +391,20 @@ function createRenderer(renderOptions2) {
       case Text:
         processText(n1, n2, container);
         break;
+      case Fragment:
+        processFragment(n1, n2, container);
+        break;
       default:
         processElement(n1, n2, container, anchor);
     }
   };
-  const unmount = (vnode) => hostRemove(vnode.el);
+  const unmount = (vnode) => {
+    if (vnode.type === Fragment) {
+      unmountChildren(vnode.children);
+    } else {
+      hostRemove(vnode.el);
+    }
+  };
   const render2 = (vnode, container) => {
     if (vnode === null) {
       console.log(vnode, container._vnode);
@@ -408,6 +425,7 @@ var render = (vnode, container) => {
   return createRenderer(renderOptions).render(vnode, container);
 };
 export {
+  Fragment,
   Text,
   createRenderer,
   h,

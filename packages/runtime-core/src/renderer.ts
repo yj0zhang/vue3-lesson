@@ -1,5 +1,5 @@
 import { ShapeFlags } from "@vue/shared";
-import { isSameVnode } from "./createVnode";
+import { Fragment, isSameVnode } from "./createVnode";
 import getSequence from "./seq";
 import { Text } from "./createVnode";
 
@@ -219,6 +219,14 @@ export function createRenderer(renderOptions){
             }
         }
     }
+    const processFragment = (n1,n2,container)=>{
+        if(n1===null){
+            mountChildren(n2.children, container)
+        } else{
+            patchChildren(n1,n2,container)
+        }
+    }
+    
     // 渲染&更新
     const patch = (n1,n2,container, anchor = null) => {
         if (n1===n2) {
@@ -233,12 +241,21 @@ export function createRenderer(renderOptions){
             case Text:
                 processText(n1,n2,container);
                 break;
+            case Fragment:
+                processFragment(n1,n2,container);
+                break;
             default: 
                 processElement(n1,n2, container, anchor);//对元素处理
         }
     }
 
-    const unmount = (vnode)=>hostRemove(vnode.el);
+    const unmount = (vnode)=>{
+        if(vnode.type === Fragment) {
+            unmountChildren(vnode.children);
+        }else{
+            hostRemove(vnode.el)
+        }
+    }
     //多次调用render 会进行虚拟节点的比较，再进行更新
     const render =(vnode, container) => {
         if(vnode === null) {
