@@ -1,6 +1,7 @@
 import { ShapeFlags } from "@vue/shared";
 import { isSameVnode } from "./createVnode";
 import getSequence from "./seq";
+import { Text } from "./createVnode";
 
 export function createRenderer(renderOptions){
     // core中不关心如何渲染，可以跨平台
@@ -208,6 +209,16 @@ export function createRenderer(renderOptions){
         patchProps(oldProps,newProps, el);//跟新属性
         patchChildren(n1,n2,el)
     }
+    const processText = (n1,n2,container)=>{
+        if(n1===null){
+            hostInsert(n2.el = hostCreateText(n2.children), container);
+        } else{
+            const el = (n2.el = n1.el)
+            if(n1.children !== n2.children){
+                hostSetText(el,n2.children);
+            }
+        }
+    }
     // 渲染&更新
     const patch = (n1,n2,container, anchor = null) => {
         if (n1===n2) {
@@ -217,7 +228,14 @@ export function createRenderer(renderOptions){
             unmount(n1);
             n1=null;//之后执行n2的初始化
         }
-        processElement(n1,n2, container, anchor);//对元素处理
+        const {type} = n2;
+        switch (type) {
+            case Text:
+                processText(n1,n2,container);
+                break;
+            default: 
+                processElement(n1,n2, container, anchor);//对元素处理
+        }
     }
 
     const unmount = (vnode)=>hostRemove(vnode.el);
@@ -227,11 +245,12 @@ export function createRenderer(renderOptions){
             //移除当前容器中的dom元素
             console.log(vnode, container._vnode)
             unmount(container._vnode)
+        } else{
+            //将虚拟节点变成真实节点渲染
+            patch(container._vnode || null,vnode,container);
+            //缓存上次的vnode
+            container._vnode = vnode;
         }
-        //将虚拟节点变成真实节点渲染
-        patch(container._vnode || null,vnode,container);
-        //缓存上次的vnode
-        container._vnode = vnode;
     }
     return {
         render,

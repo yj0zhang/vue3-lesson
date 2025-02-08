@@ -8,35 +8,12 @@
 <body>
     <div id="app"></div>
     <script type="module">
-        // import {h} from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
-        import {render,h} from "./runtime-dom.js"
-        let ele1 = h("h1",
-            [
-                h('i',{key: 'a'},'a'),
-                h('i',{key: 'b'},'b'),
-                h('i',{key: 'c'},'c'),
-                h('i',{key: 'd'},'d'),
-                h('i',{key: 'e',style: {color: 'red'}},'e'),
-                h('i',{key: 'f'},'f'),
-                h('i',{key: 'g'},'g')
-            ]
-        );
-        // [h('p','hello'),h('p','world')]
-        let ele2 = h("h1",
-        [
-                h('i',{key: 'a'},'a'),
-                h('i',{key: 'b'},'b'),
-                h('i',{key: 'e',style: {color: 'blue'}},'e'),
-                h('i',{key: 'c'},'c'),
-                h('i',{key: 'd'},'d'),
-                h('i',{key: 'h'},'h'),
-                h('i',{key: 'f'},'f'),
-                h('i',{key: 'g'},'g')
-            ]
-        );
-        render(ele1, app)
+        // import {render,h,Text} from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
+        import {render,h, Text} from "./runtime-dom.js"
+        render(h(Text, 'ss'), app);
         setTimeout(() => {
-            render(ele2, app)
+            // render(h(Text, 'dd'), app)
+            render(null, app)
         }, 3000);
     </script>
 </body>
