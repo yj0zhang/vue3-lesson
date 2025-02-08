@@ -1,5 +1,6 @@
 import { ShapeFlags } from "@vue/shared";
 import { isSameVnode } from "./createVnode";
+import getSequence from "./seq";
 
 export function createRenderer(renderOptions){
     // core中不关心如何渲染，可以跨平台
@@ -64,6 +65,7 @@ export function createRenderer(renderOptions){
             unmount(children[i])
         }
     }
+    //全量diff（递归），还有一种是快速diff（靶向更新）
     const patchKeyedChildren = (c1,c2,el)=> {
         //比较两个儿子的差异，更新el
         //先从头开始比，再从尾部比较，确定中间不一样的范围
@@ -118,6 +120,12 @@ export function createRenderer(renderOptions){
             let s2=i;
 
             const keyToNewIndexMap = new Map();//做一个映射表用于快速查找，看老的是否在新的里面还有，没有就删除，有就更新
+
+            let toBePatched = e2-s2+1;//要倒序插入的个数
+
+            let newIndexToOldMapIndex = new Array(toBePatched).fill(0);
+            //根据新的节点，找到对应老的位置
+            //
             for(let i = s2;i<=e2;i++) {
                 const vnode = c2[i];
                 keyToNewIndexMap.set(vnode.key,i)
@@ -127,16 +135,23 @@ export function createRenderer(renderOptions){
                 const vnode = c1[i];
                 const newIndex = keyToNewIndexMap.get(vnode.key);//通过key找到对应的索引
                 if(newIndex === undefined) {
-                    //新的索引没有，删除老的
+                    //新的索引没有，老的不在新的里面，删除老的
                     unmount(vnode);
                 } else {
+                    console.log(newIndex-s2,i)
+                    // 老的在新的里面，newIndex是在新的里面的索引，i是老的索引
+                    //newIndexToOldMapIndex中默认值是0，i+1后，保证值为0代表没有老的
+                    newIndexToOldMapIndex[newIndex-s2] = i+1;
                     //比较前后节点的差异，更新属性和儿子
                     patch(vnode,c2[newIndex],el);
                 }
             }
+            console.log(newIndexToOldMapIndex)
+
+            let increasingSeq = getSequence(newIndexToOldMapIndex);
+            let j = increasingSeq.length - 1;
             //调整顺序 按照新的元素顺序，倒序插入
             // 插入过程中，新的元素可能多，需要创建
-            let toBePatched = e2-s2+1;//要倒序插入的个数
             for(let i = toBePatched - 1;i>=0;i--){
                 let newIndex = s2+i;
                 let anchor = c2[newIndex+1]?.el;
@@ -144,7 +159,11 @@ export function createRenderer(renderOptions){
                 if(!vnode.el){
                     patch(null,vnode, el, anchor);
                 } else {
-                    hostInsert(vnode.el,el,anchor);
+                    if(i === increasingSeq[j]) {
+                        j--;
+                    }else{
+                        hostInsert(vnode.el,el,anchor);
+                    }
                 }
             }
         }
