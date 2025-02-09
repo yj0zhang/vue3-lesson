@@ -350,6 +350,17 @@ export function createRenderer(renderOptions){
             default: 
                 if(shapeFlag&ShapeFlags.ELEMENT) {
                     processElement(n1,n2, container, anchor);//对元素处理
+                } else if(shapeFlag&ShapeFlags.TELEPORT){
+                    type.process(n1,n2, container, anchor,null,{
+                        mountChildren,
+                        patchChildren,
+                        move(vnode, container,anchor) {
+                            hostInsert(vnode.component ? vnode.component.subTree.el:vnode.el,
+                                container,
+                                anchor
+                            )
+                        }
+                    });
                 } else if(shapeFlag&ShapeFlags.COMPONENT) {
                     processComponent(n1,n2,container,anchor);
                 }
@@ -362,6 +373,8 @@ export function createRenderer(renderOptions){
             unmountChildren(vnode.children);
         }else if(shapeFlag&ShapeFlags.COMPONENT){
             unmount(vnode.component.subTree);
+        } else if(shapeFlag&ShapeFlags.TELEPORT) {
+            vnode.type.remove(vnode,unmountChildren);
         } else{
             hostRemove(vnode.el)
         }

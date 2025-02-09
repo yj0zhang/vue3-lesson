@@ -97,6 +97,35 @@ function isString(value) {
 var hasOwnProperty = Object.prototype.hasOwnProperty;
 var hasOwn = (value, key) => hasOwnProperty.call(value, key);
 
+// packages/runtime-core/src/Teleport.ts
+var Teleport = {
+  __isTeleport: true,
+  remove(vnode, unmountChildren) {
+    const { shapeFlag, children } = vnode;
+    if (shapeFlag & 16 /* ARRAY_CHILDREN */) {
+      unmountChildren(children);
+    }
+  },
+  process(n1, n2, container, anchor, parentComponent, internals) {
+    let { mountChildren, patchChildren, move } = internals;
+    if (!n1) {
+      const target = n2.target = document.querySelector(n2.props.to);
+      if (target) {
+        mountChildren(n2.children, target, parentComponent);
+      }
+    } else {
+      patchChildren(n1, n2, n2.target, parentComponent);
+      if (n2.props.to !== n1.props.to) {
+        const nextTarget = document.querySelector(n2.props.to);
+        n2.children.forEach((child) => {
+          move(child, nextTarget, anchor);
+        });
+      }
+    }
+  }
+};
+var isTeleport = (value) => value.__isTeleport;
+
 // packages/runtime-core/src/createVnode.ts
 var Text = Symbol("Text");
 var Fragment = Symbol("Fragment");
@@ -107,7 +136,7 @@ function isSameVnode(n1, n2) {
   return n1.type === n2.type && n1.key === n2.key;
 }
 function createVnode(type, props, children) {
-  const shapeFlag = isString(type) ? 1 /* ELEMENT */ : isObject(type) ? 4 /* STATEFUL_COMPONENT */ : 0;
+  const shapeFlag = isString(type) ? 1 /* ELEMENT */ : isTeleport(type) ? 64 /* TELEPORT */ : isObject(type) ? 4 /* STATEFUL_COMPONENT */ : isFunction(type) ? 2 /* FUNCTIONAL_COMPONENT */ : 0;
   const vnode = {
     __v_isVnode: true,
     type,
@@ -987,6 +1016,18 @@ function createRenderer(renderOptions2) {
       default:
         if (shapeFlag & 1 /* ELEMENT */) {
           processElement(n1, n2, container, anchor);
+        } else if (shapeFlag & 64 /* TELEPORT */) {
+          type.process(n1, n2, container, anchor, null, {
+            mountChildren,
+            patchChildren,
+            move(vnode, container2, anchor2) {
+              hostInsert(
+                vnode.component ? vnode.component.subTree.el : vnode.el,
+                container2,
+                anchor2
+              );
+            }
+          });
         } else if (shapeFlag & 6 /* COMPONENT */) {
           processComponent(n1, n2, container, anchor);
         }
@@ -998,6 +1039,8 @@ function createRenderer(renderOptions2) {
       unmountChildren(vnode.children);
     } else if (shapeFlag & 6 /* COMPONENT */) {
       unmount(vnode.component.subTree);
+    } else if (shapeFlag & 64 /* TELEPORT */) {
+      vnode.type.remove(vnode, unmountChildren);
     } else {
       hostRemove(vnode.el);
     }
@@ -1024,6 +1067,7 @@ var render = (vnode, container) => {
 export {
   Fragment,
   ReactiveEffect,
+  Teleport,
   Text,
   activeEffect,
   computed,
@@ -1033,6 +1077,7 @@ export {
   isReactive,
   isRef,
   isSameVnode,
+  isTeleport,
   isVnode,
   proxyRefs,
   reactive,
