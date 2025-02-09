@@ -10,19 +10,20 @@
     <script type="module">
         // import {render,h,Text, Fragment} from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
         import {render,h, Text, Fragment} from "./runtime-dom.js"
-        //在生产环境下，attrs是非响应式的，开发环境下attrs是响应式的
-        //props是响应式的
+        
         const VueComponent = {
-            props:{
-                name:String,
-                age:Number,
+            data() {
+                return {name:'siii',age:20}
             },
             render(proxy) {
-                console.log(proxy)
-                return h(Fragment, [h(Text, "my name is "+proxy.name),h('a',proxy.age), h('div',proxy.$attrs.a)])
+                setTimeout(() => {
+                    this.age++;
+                    this.age++;
+                }, 1000);
+                return h(Fragment, [h(Text, "my name is "+proxy.name),h('a',proxy.age)])
             }
         }
-        render(h(VueComponent, {a:1,b:2,name:'uu',age:30}),app)
+        render(h(VueComponent),app)
     </script>
 </body>
 </html>

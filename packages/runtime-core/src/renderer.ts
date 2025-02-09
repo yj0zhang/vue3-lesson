@@ -1,7 +1,9 @@
-import { ShapeFlags } from "@vue/shared";
+import { hasOwn, ShapeFlags } from "@vue/shared";
 import { Fragment, isSameVnode } from "./createVnode";
 import getSequence from "./seq";
 import { Text } from "./createVnode";
+import { reactive, ReactiveEffect } from "@vue/reactivity";
+import { queueJob } from "./scheduler";
 
 export function createRenderer(renderOptions){
     // core中不关心如何渲染，可以跨平台
@@ -226,6 +228,107 @@ export function createRenderer(renderOptions){
             patchChildren(n1,n2,container)
         }
     }
+
+    const initProps = (instance, rawProps) => {
+        //rawProps 使用组件时，传入的
+        const props = {};
+        const attrs = {};
+        const propsOptions = instance.propsOptions ||{};//组件中定义的
+        if(rawProps){
+            for(let key in rawProps){
+                const value = rawProps[key];
+                //todo 校验value类型
+                if(key in propsOptions) {
+                    props[key] = value;
+                } else {
+                    attrs[key] = value
+                }
+            }
+        }
+        instance.attrs = attrs;
+        //源码里是shallowReactive
+        instance.props = reactive(props);
+    }
+
+    const mountComponent=(vnode,container,anchor)=>{
+        //组件可以基于自己的状态重新渲染
+        const {data=()=>{},render,props: propsOptions = {}} = vnode.type;
+        const instance = {
+            data:reactive(data()),//状态
+            vnode,//组件的虚拟节点
+            subTree: null,//子树
+            isMounted: false,//是否挂载完成
+            update: null,//组件的更新函数
+            props:{},
+            attrs:{},
+            propsOptions,
+            component:null,
+            proxy:null,//用来代理props attrs data
+        }
+        vnode.component = instance;
+        //根据propsOptions区分出props，attrs
+        //组件更新 n2.component.subTree.el = n1.component.subTree.el
+        initProps(instance, vnode.props);
+        console.log(instance)
+
+        const publicProperty = {
+            $attrs: (instance)=>instance.attrs,
+        }
+        instance.proxy = new Proxy(instance,{
+            get(target,key){
+                const {data,props} = target;
+                if(data && hasOwn(data,key)) {
+                    return data[key];
+                } else if(hasOwn(props,key)){
+                    return props[key];
+                }
+                debugger
+                //对于一些无法修改的属性 $slots $attrs
+                const getter = publicProperty[key];
+                if(getter) {
+                    return getter(target)
+                }
+            },
+            set(target,key,value){
+                const {data,props} = target;
+                if(data && hasOwn(data,key)) {
+                    data[key] = value;
+                } else if(hasOwn(props,key)){
+                    // props[key]  = value;
+                    console.warn("props are readonly")
+                    return false;
+                }
+                return true;
+            }
+        })
+        const componentUpdateFn = () => {
+            if(!instance.isMounted) {
+                const subTree = render.call(instance.proxy, instance.proxy);
+                patch(null,subTree,container,anchor);
+                instance.isMounted = true;
+                instance.subTree = subTree;
+            }else{
+                //基于状态的更新
+                const subTree = render.call(instance.proxy, instance.proxy);
+                patch(instance.subTree, subTree,container,anchor);
+                instance.subTree = subTree;
+            }
+        }
+        const effect = new ReactiveEffect(componentUpdateFn, () => queueJob(update));
+        const update = instance.update = () => effect.run();
+        update();
+    }
+
+    const patchComponent = (n1,n2,container,anchor)=>{}
+
+    const processComponent = (n1,n2,container,anchor)=>{
+        if(n1===null){
+            mountComponent(n2,container,anchor)
+        } else{
+            //
+            patchComponent(n1,n2,container,anchor);
+        }
+    }
     
     // 渲染&更新
     const patch = (n1,n2,container, anchor = null) => {
@@ -236,7 +339,7 @@ export function createRenderer(renderOptions){
             unmount(n1);
             n1=null;//之后执行n2的初始化
         }
-        const {type} = n2;
+        const {type, shapeFlag} = n2;
         switch (type) {
             case Text:
                 processText(n1,n2,container);
@@ -245,7 +348,11 @@ export function createRenderer(renderOptions){
                 processFragment(n1,n2,container);
                 break;
             default: 
-                processElement(n1,n2, container, anchor);//对元素处理
+                if(shapeFlag&ShapeFlags.ELEMENT) {
+                    processElement(n1,n2, container, anchor);//对元素处理
+                } else if(shapeFlag&ShapeFlags.COMPONENT) {
+                    processComponent(n1,n2,container,anchor);
+                }
         }
     }
 
