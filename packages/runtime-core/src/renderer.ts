@@ -1,8 +1,8 @@
-import { hasOwn, ShapeFlags } from "@vue/shared";
+import { ShapeFlags } from "@vue/shared";
 import { Fragment, isSameVnode } from "./createVnode";
 import getSequence from "./seq";
 import { Text } from "./createVnode";
-import { reactive, ReactiveEffect } from "@vue/reactivity";
+import { ReactiveEffect } from "@vue/reactivity";
 import { queueJob } from "./scheduler";
 import { createComponentInstance, setupComponent } from "./component";
 
@@ -259,14 +259,46 @@ export function createRenderer(renderOptions){
         setupRenderEffect(instance,container,anchor)
     }
 
-    const patchComponent = (n1,n2,container,anchor)=>{}
+    const hasPropsChange = (preProps,nextProps)=> {
+        let nKeys = Object.keys(nextProps);
+        if(nKeys.length !== Object.keys(preProps).length) {
+            return true
+        }
+
+        for(let i = 0;i<nKeys.length;i++){
+            const key = nKeys[i];
+            if(nextProps[key]!==preProps[key]){
+                return true;
+            }
+            return false;
+        }
+    }
+    const updateProps = (instance,preProps,nextProps)=>{
+        if(hasPropsChange(preProps,nextProps)){
+            for(let key in nextProps) {
+                instance.props[key] = nextProps[key]
+            }
+            for(let key in instance.props) {
+                if(!(key in nextProps)) {
+                    delete instance.props[key]
+                }
+            }
+        }
+    }
+
+    const updateComponent = (n1,n2,container,anchor)=>{
+        const instance = (n2.component = n1.component);
+        const {props:preProps} = n1;
+        const {props:nextProps} = n2;
+        updateProps(instance,preProps,nextProps)
+    }
 
     const processComponent = (n1,n2,container,anchor)=>{
         if(n1===null){
             mountComponent(n2,container,anchor)
         } else{
-            //
-            patchComponent(n1,n2,container,anchor);
+            //组件更新
+            updateComponent(n1,n2,container,anchor);
         }
     }
     

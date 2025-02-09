@@ -672,13 +672,42 @@ function createRenderer(renderOptions2) {
     setupComponent(instance);
     setupRenderEffect(instance, container, anchor);
   };
-  const patchComponent = (n1, n2, container, anchor) => {
+  const hasPropsChange = (preProps, nextProps) => {
+    let nKeys = Object.keys(nextProps);
+    if (nKeys.length !== Object.keys(preProps).length) {
+      return true;
+    }
+    for (let i = 0; i < nKeys.length; i++) {
+      const key = nKeys[i];
+      if (nextProps[key] !== preProps[key]) {
+        return true;
+      }
+      return false;
+    }
+  };
+  const updateProps = (instance, preProps, nextProps) => {
+    if (hasPropsChange(preProps, nextProps)) {
+      for (let key in nextProps) {
+        instance.props[key] = nextProps[key];
+      }
+      for (let key in instance.props) {
+        if (!(key in nextProps)) {
+          delete instance.props[key];
+        }
+      }
+    }
+  };
+  const updateComponent = (n1, n2, container, anchor) => {
+    const instance = n2.component = n1.component;
+    const { props: preProps } = n1;
+    const { props: nextProps } = n2;
+    updateProps(instance, preProps, nextProps);
   };
   const processComponent = (n1, n2, container, anchor) => {
     if (n1 === null) {
       mountComponent(n2, container, anchor);
     } else {
-      patchComponent(n1, n2, container, anchor);
+      updateComponent(n1, n2, container, anchor);
     }
   };
   const patch = (n1, n2, container, anchor = null) => {
