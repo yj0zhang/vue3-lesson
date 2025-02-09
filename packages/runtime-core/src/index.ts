@@ -3,3 +3,4 @@ export * from './createVnode';
 export * from './renderer';
 export * from '@vue/reactivity';
 export * from './Teleport';
+export * from './apiProvide';
