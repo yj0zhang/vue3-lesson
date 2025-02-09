@@ -649,6 +649,11 @@ function createRenderer(renderOptions2) {
       patchChildren(n1, n2, container);
     }
   };
+  const updateComponentPreRender = (instance, next) => {
+    instance.next = null;
+    instance.vnode = next;
+    updateProps(instance, instance.props, next.props);
+  };
   function setupRenderEffect(instance, container, anchor) {
     const { render: render3 } = instance;
     const componentUpdateFn = () => {
@@ -658,6 +663,10 @@ function createRenderer(renderOptions2) {
         instance.isMounted = true;
         instance.subTree = subTree;
       } else {
+        const { next } = instance;
+        if (next) {
+          updateComponentPreRender(instance, next);
+        }
         const subTree = render3.call(instance.proxy, instance.proxy);
         patch(instance.subTree, subTree, container, anchor);
         instance.subTree = subTree;
@@ -697,11 +706,23 @@ function createRenderer(renderOptions2) {
       }
     }
   };
+  const shouldComponentUpdate = (instance, n1, n2) => {
+    const { props: preProps, children: prevChildren } = n1;
+    const { props: nextProps, children: nextChildren } = n2;
+    if (prevChildren || nextChildren) {
+      return true;
+    }
+    if (preProps === nextProps) {
+      return false;
+    }
+    return hasPropsChange(preProps, nextProps);
+  };
   const updateComponent = (n1, n2, container, anchor) => {
     const instance = n2.component = n1.component;
-    const { props: preProps } = n1;
-    const { props: nextProps } = n2;
-    updateProps(instance, preProps, nextProps);
+    if (shouldComponentUpdate(instance, n1, n2)) {
+      instance.next = n2;
+      instance.update();
+    }
   };
   const processComponent = (n1, n2, container, anchor) => {
     if (n1 === null) {

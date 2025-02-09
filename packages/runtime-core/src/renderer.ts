@@ -230,6 +230,12 @@ export function createRenderer(renderOptions){
         }
     }
 
+    const updateComponentPreRender  = (instance,next) => {
+        instance.next = null;
+        instance.vnode = next;
+        updateProps(instance,instance.props,next.props);
+    }
+
     function setupRenderEffect(instance,container,anchor) {
         const {render} = instance;
         const componentUpdateFn = () => {
@@ -240,6 +246,13 @@ export function createRenderer(renderOptions){
                 instance.subTree = subTree;
             }else{
                 //基于状态的更新
+
+                const {next} = instance;
+                if(next) {
+                    //更新属性和插槽
+                    updateComponentPreRender(instance,next)
+                    //slots props
+                }
                 const subTree = render.call(instance.proxy, instance.proxy);
                 patch(instance.subTree, subTree,container,anchor);
                 instance.subTree = subTree;
@@ -286,11 +299,26 @@ export function createRenderer(renderOptions){
         }
     }
 
+    const shouldComponentUpdate = (instance,n1,n2) => {
+        
+        const {props:preProps,children:prevChildren} = n1;
+        const {props:nextProps,children:nextChildren} = n2;
+        if(prevChildren || nextChildren) {
+            return true;
+        }
+        if(preProps === nextProps) {
+            return false;
+        }
+        return hasPropsChange(preProps,nextProps);
+    }
+
     const updateComponent = (n1,n2,container,anchor)=>{
         const instance = (n2.component = n1.component);
-        const {props:preProps} = n1;
-        const {props:nextProps} = n2;
-        updateProps(instance,preProps,nextProps)
+        if(shouldComponentUpdate(instance,n1,n2)) {
+            instance.next = n2;//如果调用update，有next属性，说明是属性更新，插槽更新
+            instance.update();
+        }
+
     }
 
     const processComponent = (n1,n2,container,anchor)=>{
