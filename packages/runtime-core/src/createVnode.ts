@@ -11,7 +11,11 @@ export function isSameVnode(n1,n2){
 }
 
 export default function createVnode(type,props,children?){
-    const shapeFlag = isString(type)?ShapeFlags.ELEMENT:isObject(type)?ShapeFlags.STATEFUL_COMPONENT:0;
+    const shapeFlag = isString(type)
+        ?ShapeFlags.ELEMENT
+        :isObject(type)
+        ?ShapeFlags.STATEFUL_COMPONENT
+        :0;
     const vnode = {
         __v_isVnode: true,
         type,
@@ -24,6 +28,8 @@ export default function createVnode(type,props,children?){
     if(children) {
         if(Array.isArray(children)) {
             vnode.shapeFlag |= ShapeFlags.ARRAY_CHILDREN;
+        } else if(isObject(children)) {
+            vnode.shapeFlag|= ShapeFlags.SLOTS_CHILDREN;
         } else {
             children = String(children);
             vnode.shapeFlag |= ShapeFlags.TEXT_CHILDREN;

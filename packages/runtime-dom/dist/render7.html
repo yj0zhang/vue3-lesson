@@ -12,23 +12,25 @@
         import {render,h, Text, Fragment, ref} from "./runtime-dom.js"
         //setup函数，每个组件只执行一次，可以放入composition api，reactive，ref
         //setup可以返回render函数；也可以返回对象，这个对象在render中可以通过proxy访问
-        const RenderComponent = {
-            render(proxy) {
-                console.log(proxy.$slots)
-                return h(Fragment,
-                    [proxy.$slots.header('h'),proxy.$slots.footer('f')]
-                )
-            }
-        }
         const VueComponent = {
             setup(props,{emit,attrs,expose,slots}) {
-                
-                return (proxy) => {
-                    return h(RenderComponent,null,{
-                        header: (t) => h('header',"header"+t),
-                        footer: (t) => h('footer',"footer"+t),
-                    })
+                console.log(props, emit,attrs,expose)
+                const a = ref(1);
+                setTimeout(()=>{
+                    a.value = 2;
+                }, 1000)
+                return {
+                    a,
                 }
+                // return (proxy) => {
+                //     return h('div',999)
+                // }
+                // return () => {
+                //     return h('i',a.value)
+                // }
+            },
+            render(proxy) {
+                return h('div', proxy.a)
             }
         }
         render(h(VueComponent, {}),app)
