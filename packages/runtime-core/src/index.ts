@@ -4,5 +4,6 @@ export * from './renderer';
 export * from '@vue/reactivity';
 export * from './apiLifecycle';
 export * from './component';
-export * from './Teleport';
 export * from './apiProvide';
+export * from './Teleport';
+export * from './defineAsyncComponent';
