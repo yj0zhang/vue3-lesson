@@ -612,7 +612,6 @@ function queueJob(job) {
 }
 
 // packages/runtime-core/src/component.ts
-var currentInstance = null;
 function createComponentInstance(vnode, parent) {
   const instance = {
     data: null,
@@ -714,7 +713,9 @@ function setupComponent(instance) {
         instance.exposed = value;
       }
     };
+    setCurrentInstance(instance);
     const setupResult = setup(instance.props, setupContext);
+    unsetCurrentInstance();
     if (isFunction(setupResult)) {
       instance.render = setupResult;
     } else {
@@ -726,6 +727,48 @@ function setupComponent(instance) {
   }
   instance.data = data ? reactive(data.call(instance.proxy)) : null;
   instance.render = instance.render || render2;
+}
+var currentInstance = null;
+var getCurrentInstance = () => {
+  return currentInstance;
+};
+var setCurrentInstance = (instance) => {
+  currentInstance = instance;
+};
+var unsetCurrentInstance = () => {
+  currentInstance = null;
+};
+
+// packages/runtime-core/src/apiLifecycle.ts
+var LifeCycle = /* @__PURE__ */ ((LifeCycle2) => {
+  LifeCycle2["BEFOR_MOUNT"] = "bm";
+  LifeCycle2["MOUNTED"] = "m";
+  LifeCycle2["BEFOR_UPDATED"] = "bu";
+  LifeCycle2["UPDATED"] = "u";
+  return LifeCycle2;
+})(LifeCycle || {});
+function createHook(type) {
+  return (hook, target = currentInstance) => {
+    console.log(type, hook);
+    if (target) {
+      const hooks = target[type] || (target[type] = []);
+      const wrapHook = () => {
+        setCurrentInstance(target);
+        hook.call(target);
+        unsetCurrentInstance();
+      };
+      hooks.push(wrapHook);
+    }
+  };
+}
+var onBeforeMount = createHook("bm" /* BEFOR_MOUNT */);
+var onMounted = createHook("m" /* MOUNTED */);
+var onBeforeUpdate = createHook("bu" /* BEFOR_UPDATED */);
+var onUpdated = createHook("u" /* UPDATED */);
+function invokeArray(fns) {
+  for (let i = 0; i < fns.length; i++) {
+    fns[i]();
+  }
 }
 
 // packages/runtime-core/src/renderer.ts
@@ -742,6 +785,9 @@ function createRenderer(renderOptions2) {
     patchProp: hostPatchProp
   } = renderOptions2;
   const normalize = (children) => {
+    if (!Array.isArray(children)) {
+      return children;
+    }
     for (let i = 0; i < children.length; i++) {
       if (typeof children[i] === "string" || typeof children[i] === "number") {
         children[i] = createVnode(Text, null, String(children[i]));
@@ -942,19 +988,32 @@ function createRenderer(renderOptions2) {
   }
   function setupRenderEffect(instance, container, anchor, parentComponent) {
     const componentUpdateFn = () => {
+      const { bm, m } = instance;
       if (!instance.isMounted) {
+        if (bm) {
+          invokeArray(bm);
+        }
         const subTree = renderComponent(instance);
         patch(null, subTree, container, anchor, instance);
         instance.isMounted = true;
         instance.subTree = subTree;
+        if (m) {
+          invokeArray(m);
+        }
       } else {
-        const { next } = instance;
+        const { next, bu, u } = instance;
         if (next) {
           updateComponentPreRender(instance, next);
+        }
+        if (bu) {
+          invokeArray(bu);
         }
         const subTree = renderComponent(instance);
         patch(instance.subTree, subTree, container, anchor, instance);
         instance.subTree = subTree;
+        if (u) {
+          invokeArray(u);
+        }
       }
     };
     const effect2 = new ReactiveEffect(componentUpdateFn, () => queueJob(update));
@@ -1105,25 +1164,37 @@ var render = (vnode, container) => {
 };
 export {
   Fragment,
+  LifeCycle,
   ReactiveEffect,
   Teleport,
   Text,
   activeEffect,
   computed,
+  createComponentInstance,
   createRenderer,
+  currentInstance,
   effect,
+  getCurrentInstance,
   h,
+  initSlots,
   inject,
+  invokeArray,
   isReactive,
   isRef,
   isSameVnode,
   isTeleport,
   isVnode,
+  onBeforeMount,
+  onBeforeUpdate,
+  onMounted,
+  onUpdated,
   provide,
   proxyRefs,
   reactive,
   ref,
   render,
+  setCurrentInstance,
+  setupComponent,
   toReactive,
   toRef,
   toRefs,
@@ -1131,6 +1202,7 @@ export {
   trackRefValue,
   triggerEffects,
   triggerRefValue,
+  unsetCurrentInstance,
   watch,
   watchEffect
 };

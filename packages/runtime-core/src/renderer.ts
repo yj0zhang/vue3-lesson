@@ -5,6 +5,7 @@ import { Text } from "./createVnode";
 import { ReactiveEffect } from "@vue/reactivity";
 import { queueJob } from "./scheduler";
 import { createComponentInstance, setupComponent } from "./component";
+import { invokeArray } from "./apiLifecycle";
 
 export function createRenderer(renderOptions){
     // core中不关心如何渲染，可以跨平台
@@ -21,6 +22,9 @@ export function createRenderer(renderOptions){
     } = renderOptions;
 
     const normalize = (children) => {
+        if(!Array.isArray(children)) {
+            return children
+        }
         for(let i=0;i<children.length;i++){
             if(typeof children[i] === 'string' || typeof children[i] === 'number'){
                 children[i] = createVnode(Text,null,String(children[i]));
@@ -255,23 +259,39 @@ export function createRenderer(renderOptions){
     }
     function setupRenderEffect(instance,container,anchor, parentComponent) {
         const componentUpdateFn = () => {
+            const {bm,m} = instance;
             if(!instance.isMounted) {
+
+                if(bm) {
+                    invokeArray(bm);
+                }
                 const subTree = renderComponent(instance);
                 patch(null,subTree,container,anchor, instance);
                 instance.isMounted = true;
                 instance.subTree = subTree;
+
+                if(m) {
+                    invokeArray(m);
+                }
             }else{
                 //基于状态的更新
 
-                const {next} = instance;
+                const {next,bu,u} = instance;
                 if(next) {
                     //更新属性和插槽
                     updateComponentPreRender(instance,next)
                     //slots props
                 }
+                if(bu){
+                    invokeArray(bu)
+                }
                 const subTree = renderComponent(instance);
                 patch(instance.subTree, subTree,container,anchor, instance);
                 instance.subTree = subTree;
+
+                if(u){
+                    invokeArray(u)
+                }
             }
         }
         const effect = new ReactiveEffect(componentUpdateFn, () => queueJob(update));

@@ -1,7 +1,6 @@
 import { proxyRefs, reactive } from "@vue/reactivity";
 import { hasOwn, isFunction, ShapeFlags } from "@vue/shared";
 
-export const currentInstance = null;
 export function createComponentInstance(vnode,parent) {
     const instance = {
         data:null,//状态
@@ -108,7 +107,9 @@ export function setupComponent(instance) {
                 instance.exposed = value;
             },
         }
+        setCurrentInstance(instance);
         const setupResult = setup(instance.props,setupContext);
+        unsetCurrentInstance();
         if(isFunction(setupResult)) {
             instance.render = setupResult;
         } else {
@@ -120,4 +121,15 @@ export function setupComponent(instance) {
     }
     instance.data = data ? reactive(data.call(instance.proxy)) : null
     instance.render = instance.render || render
+}
+
+export let currentInstance = null;
+export const getCurrentInstance = () => {
+    return currentInstance;
+}
+export const setCurrentInstance = (instance) => {
+    currentInstance = instance;
+}
+export const unsetCurrentInstance = () => {
+    currentInstance = null;
 }
