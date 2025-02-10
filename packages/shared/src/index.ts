@@ -8,7 +8,8 @@ export function isFunction(value) {
 export function isString(value) {
     return typeof value === 'string';
 }
-export * from './shapeFlags'
+export * from './shapeFlags';
+export * from './patchFlags';
 
 const hasOwnProperty = Object.prototype.hasOwnProperty;
 export const hasOwn = (value,key)=>hasOwnProperty.call(value,key)

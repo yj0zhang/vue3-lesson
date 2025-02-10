@@ -1,4 +1,4 @@
-import { ShapeFlags } from "@vue/shared";
+import { ShapeFlags, PatchFlags } from "@vue/shared";
 import createVnode, { Fragment, isSameVnode } from "./createVnode";
 import getSequence from "./seq";
 import { Text } from "./createVnode";
@@ -22,20 +22,19 @@ export function createRenderer(renderOptions){
     } = renderOptions;
 
     const normalize = (children) => {
-        if(!Array.isArray(children)) {
-            return children
-        }
-        for(let i=0;i<children.length;i++){
-            if(typeof children[i] === 'string' || typeof children[i] === 'number'){
-                children[i] = createVnode(Text,null,String(children[i]));
+        if(Array.isArray(children)) {
+            for(let i=0;i<children.length;i++){
+                if(typeof children[i] === 'string' || typeof children[i] === 'number'){
+                    children[i] = createVnode(Text,null,String(children[i]));
+                }
             }
         }
         return children
     }
-    const mountChildren = (children,container,parentComponent)=> {
+    const mountChildren = (children,container,anchor,parentComponent)=> {
         for(let i=0;i<children.length;i++){
             normalize(children)
-            patch(null, children[i],container,parentComponent);
+            patch(null, children[i],container,anchor,parentComponent);
         }
     }
 
@@ -52,7 +51,7 @@ export function createRenderer(renderOptions){
         if(shapeFlag & ShapeFlags.TEXT_CHILDREN) {
             hostSetElementText(el, children)
         } else if(shapeFlag&ShapeFlags.ARRAY_CHILDREN) {
-            mountChildren(children,el,parentComponent)
+            mountChildren(children,el,anchor,parentComponent)
         }
         hostInsert(el, container, anchor)
     }
@@ -62,7 +61,7 @@ export function createRenderer(renderOptions){
             mountElement(n2,container, anchor,parentComponent)
         } else {
             //打补丁：比较差异并更新
-            patchElement(n1,n2,container,parentComponent)
+            patchElement(n1,n2,container,anchor,parentComponent)
         }
     }
     const patchProps = (oldProps, newProps,el) => {
@@ -184,7 +183,7 @@ export function createRenderer(renderOptions){
             }
         }
     }
-    const patchChildren = (n1,n2,el,parentComponent) => {
+    const patchChildren = (n1,n2,el,anchor,parentComponent) => {
         //
         const c1 = n1.children;
         const c2 = normalize(n2.children);
@@ -211,18 +210,49 @@ export function createRenderer(renderOptions){
                     hostSetElementText(el, '')
                 }
                 if(shapeFlag &ShapeFlags.ARRAY_CHILDREN){
-                    mountChildren(c2,el,parentComponent);
+                    mountChildren(c2,el,anchor,parentComponent);
                 }
             }
         }
     }
-    const patchElement = (n1,n2,container,parentComponent)=>{
+
+    const patchBlockChildren = (n1,n2,el,anchor,parentComponent)=>{
+        for(let i = 0; i < n2.dynamicChildren.length;i++){
+            patch(n1.dynamicChildren[i],n2.dynamicChildren[i],el,anchor,parentComponent);
+        }
+    }
+    const patchElement = (n1,n2,container,anchor,parentComponent)=>{
         //比较元素属性和子节点的差异，
         let el = n2.el = n1.el;//复用dom元素
         let oldProps = n1.props || {};
         let newProps = n2.props || {};
-        patchProps(oldProps,newProps, el);//跟新属性
-        patchChildren(n1,n2,el,parentComponent)
+
+        //在比较元素的时候，针对某个属性来比较
+        const {patchFlag, dynamicChildren} = n2;
+        if(patchFlag) {
+            if(patchFlag & PatchFlags.STYLE){
+                //
+            }
+            if(patchFlag & PatchFlags.CLASS){
+                //
+            }
+            if(patchFlag & PatchFlags.TEXT){
+                if(n1.children !== n2.children) {
+                    return hostSetElementText(el, n2.children);
+                }
+            }
+            //...
+        } else {
+            patchProps(oldProps,newProps, el);//跟新属性
+        }
+        if(dynamicChildren) {
+            //线性比对
+            patchBlockChildren(n1,n2,el,anchor,parentComponent);
+        } else {
+            //全量diff
+            patchChildren(n1,n2,el,anchor,parentComponent)
+        }
+        //
     }
     const processText = (n1,n2,container)=>{
         if(n1===null){
@@ -234,11 +264,11 @@ export function createRenderer(renderOptions){
             }
         }
     }
-    const processFragment = (n1,n2,container,parentComponent)=>{
+    const processFragment = (n1,n2,container,anchor,parentComponent)=>{
         if(n1===null){
-            mountChildren(n2.children, container,parentComponent)
+            mountChildren(n2.children, container,anchor,parentComponent)
         } else{
-            patchChildren(n1,n2,container,parentComponent)
+            patchChildren(n1,n2,container,anchor,parentComponent)
         }
     }
 
@@ -381,7 +411,7 @@ export function createRenderer(renderOptions){
                 processText(n1,n2,container);
                 break;
             case Fragment:
-                processFragment(n1,n2,container, parentComponent);
+                processFragment(n1,n2,container, anchor,parentComponent);
                 break;
             default: 
                 if(shapeFlag&ShapeFlags.ELEMENT) {
