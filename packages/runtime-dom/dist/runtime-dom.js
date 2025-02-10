@@ -932,11 +932,18 @@ function createRenderer(renderOptions2) {
     instance.vnode = next;
     updateProps(instance, instance.props, next.props);
   };
+  function renderComponent(instance) {
+    const { render: render3, vnode, proxy, props, attrs } = instance;
+    if (vnode.shapeFlag & 4 /* STATEFUL_COMPONENT */) {
+      return render3.call(proxy, proxy);
+    } else {
+      return vnode.type(attrs);
+    }
+  }
   function setupRenderEffect(instance, container, anchor, parentComponent) {
-    const { render: render3 } = instance;
     const componentUpdateFn = () => {
       if (!instance.isMounted) {
-        const subTree = render3.call(instance.proxy, instance.proxy);
+        const subTree = renderComponent(instance);
         patch(null, subTree, container, anchor, instance);
         instance.isMounted = true;
         instance.subTree = subTree;
@@ -945,7 +952,7 @@ function createRenderer(renderOptions2) {
         if (next) {
           updateComponentPreRender(instance, next);
         }
-        const subTree = render3.call(instance.proxy, instance.proxy);
+        const subTree = renderComponent(instance);
         patch(instance.subTree, subTree, container, anchor, instance);
         instance.subTree = subTree;
       }
@@ -1082,7 +1089,6 @@ function provide(key, value) {
   provides[key] = value;
 }
 function inject(key, defaultValue) {
-  debugger;
   if (!currentInstance) return;
   const provides = currentInstance.parent?.provides;
   if (provides && key in provides) {

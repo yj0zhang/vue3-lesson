@@ -10,31 +10,12 @@
     <div id="root"></div>
     <div id="root2"></div>
     <script type="module">
-        // import {render,h,Text, Fragment, ref, getCurrentInstance, Teleport, provide,inject} from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
+        // import {render,h,Text, Fragment, ref, getCurrentInstance, Teleport, provide,inject, onMounted} from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
         import {render,h, Text, Fragment, ref, Teleport, provide,inject} from "./runtime-dom.js"
-        const P3 = {
-            setup(props) {
-                const name=inject('name');
-                const age=inject('age',30);
-                return ()=>h("div",[name.value,age]);
-            }
+        function functionalComponent(props) {
+            return h('div',props.a+props.b)
         }
-        const P2 = {
-            setup(props) {
-                return ()=>h(P3);
-            }
-        }
-        const P1 = {
-            setup(props) {
-                const name = ref('jd')
-                setTimeout(() => {
-                    name.value='ccc'
-                }, 1000);
-                provide("name",name);
-                return ()=>h(P2);
-            }
-        }
-        render(h(P1),app)
+        render(h(functionalComponent, {a:1,b:2}),app)
     </script>
 </body>
 </html>

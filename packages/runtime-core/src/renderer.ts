@@ -244,11 +244,19 @@ export function createRenderer(renderOptions){
         updateProps(instance,instance.props,next.props);
     }
 
+
+    function renderComponent(instance) {
+        const {render,vnode, proxy,props,attrs} = instance;
+        if(vnode.shapeFlag&ShapeFlags.STATEFUL_COMPONENT){
+            return render.call(proxy, proxy);
+        } else {
+            return vnode.type(attrs);//函数式组件
+        }
+    }
     function setupRenderEffect(instance,container,anchor, parentComponent) {
-        const {render} = instance;
         const componentUpdateFn = () => {
             if(!instance.isMounted) {
-                const subTree = render.call(instance.proxy, instance.proxy);
+                const subTree = renderComponent(instance);
                 patch(null,subTree,container,anchor, instance);
                 instance.isMounted = true;
                 instance.subTree = subTree;
@@ -261,7 +269,7 @@ export function createRenderer(renderOptions){
                     updateComponentPreRender(instance,next)
                     //slots props
                 }
-                const subTree = render.call(instance.proxy, instance.proxy);
+                const subTree = renderComponent(instance);
                 patch(instance.subTree, subTree,container,anchor, instance);
                 instance.subTree = subTree;
             }

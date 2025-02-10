@@ -12,7 +12,6 @@ export function provide(key,value) {
     provides[key] = value;
 }
 export function inject(key,defaultValue) {
-    debugger
     if(!currentInstance) return;
     const provides = currentInstance.parent?.provides;
     if(provides && key in provides) {
