@@ -146,7 +146,8 @@ function createVnode(type, props, children) {
     //用户提供的，diff算法后面需要的key
     el: null,
     //虚拟节点需要对应的真实节点
-    shapeFlag
+    shapeFlag,
+    ref: props?.ref
   };
   if (children) {
     if (Array.isArray(children)) {
@@ -749,7 +750,6 @@ var LifeCycle = /* @__PURE__ */ ((LifeCycle2) => {
 })(LifeCycle || {});
 function createHook(type) {
   return (hook, target = currentInstance) => {
-    console.log(type, hook);
     if (target) {
       const hooks = target[type] || (target[type] = []);
       const wrapHook = () => {
@@ -1083,7 +1083,7 @@ function createRenderer(renderOptions2) {
       unmount(n1);
       n1 = null;
     }
-    const { type, shapeFlag } = n2;
+    const { type, shapeFlag, ref: ref2 } = n2;
     switch (type) {
       case Text:
         processText(n1, n2, container);
@@ -1110,7 +1110,16 @@ function createRenderer(renderOptions2) {
           processComponent(n1, n2, container, anchor, parentComponent);
         }
     }
+    if (ref2 !== null) {
+      setRef(ref2, n2);
+    }
   };
+  function setRef(rawRef, vnode) {
+    let value = vnode.shapeFlag & 4 /* STATEFUL_COMPONENT */ ? vnode.component.exposed || vnode.component.proxy : vnode.el;
+    if (isRef(rawRef)) {
+      rawRef.value = value;
+    }
+  }
   const unmount = (vnode) => {
     const { shapeFlag } = vnode;
     if (vnode.type === Fragment) {

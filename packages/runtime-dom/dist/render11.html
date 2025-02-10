@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    <div id="app"></div>
+    <div id="root"></div>
+    <div id="root2"></div>
+    <script type="module">
+        // import {render,h,Text, Fragment, ref, getCurrentInstance, Teleport, provide,inject, onMounted,
+        //     onBeforeMount,onBeforeUpdate,onUpdated
+        // } from "/node_modules/@vue/runtime-dom/dist/runtime-dom.esm-browser.js";
+        import {render,h, Text, Fragment, ref, Teleport, provide,inject,
+            onMounted,
+            onBeforeMount,onBeforeUpdate,onUpdated,
+            getCurrentInstance,
+        } from "./runtime-dom.js"
+        const My = {
+            props:{
+                value:String
+            },
+            setup(props,{emit,expose,slots,attrs}){
+                console.log('child instance', getCurrentInstance())
+                onBeforeMount(() => {
+                    console.log('child instance bug', getCurrentInstance())
+                    console.log('child onBeforeMount')
+                })
+                onMounted(() => {
+                    console.log('child onMounted')
+                })
+                onBeforeUpdate(() => {
+                    console.log('child onBeforeUpdate')
+                })
+                onUpdated(() => {
+                    console.log('child onUpdated')
+                })
+                return () => {
+                    return h('div',props.value)
+                }
+            },
+            // render(proxy) {
+            //     console.log(proxy.value)
+            //     return h('div',proxy.value)
+            // }
+        }
+        const VueComponent = {
+            setup(props,{emit,expose,slots,attrs}){
+                console.log('parent instance', getCurrentInstance())
+                onBeforeMount(() => {
+                    console.log('onBeforeMount')
+                })
+                onMounted(() => {
+                    console.log('onMounted')
+                })
+                onBeforeUpdate(() => {
+                    console.log('onBeforeUpdate')
+                })
+                onUpdated(() => {
+                    console.log('onUpdated')
+                })
+                const value = ref('a')
+                setTimeout(() => {
+                    value.value = 'b'
+                }, 1000);
+                return () => {
+                    return h(My,{value:value.value})
+                }
+            },
+            // render(proxy) {
+            //     console.log(proxy.value)
+            //     return h('div',proxy.value)
+            // }
+        }
+        render(h(VueComponent, {a:1,b:2}),app)
+    </script>
+</body>
+</html>

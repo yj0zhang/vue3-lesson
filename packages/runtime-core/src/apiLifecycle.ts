@@ -11,7 +11,6 @@ export const enum LifeCycle {
 function createHook(type) {
     //target = currentInstance 将当前实例存到了此钩子上
     return (hook, target = currentInstance)=>{
-        console.log(type,hook)
         if(target) {
             const hooks = target[type] || (target[type] = []);
             const wrapHook = () => {
